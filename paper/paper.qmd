@@ -1,16 +1,11 @@
 ---
-title: "My title"
-subtitle: "My subtitle if needed"
+title: "GEMINI Programming Skills Test"
 author: 
-  - First author
-  - Another author
-thanks: "Code and data are available at: LINK."
+  - Bella MacLean
 date: today
 date-format: long
-abstract: "First sentence. Second sentence. Third sentence. Fourth sentence."
 format: pdf
 number-sections: true
-bibliography: references.bib
 ---
 
 ```{r}
@@ -19,203 +14,192 @@ bibliography: references.bib
 #| message: false
 
 library(tidyverse)
-library(palmerpenguins)
+library(dplyr)
+library(knitr)
+install.packages("kableExtra")
+library(kableExtra)
 ```
 
 
-# Introduction
+# Task One
 
-You can and should cross-reference sections and sub-sections. We use @citeR and @rohan.
-
-The remainder of this paper is structured as follows. @sec-data....
-
-
-
-# Data {#sec-data}
-
-Some of our data is of penguins (@fig-bills), from @palmerpenguins.
+Read in the csv files (admissions_surg.csv, admissions_med.csv and imaging.csv) and perform de-identification on all 3 files. De-identification is a common practice in health research in which an personal health identifer that identifies a patient is replaced with another unique ID for privacy
+purposes.
 
 ```{r}
-#| label: fig-bills
-#| fig-cap: Bills of penguins
-#| echo: false
-
-ggplot(penguins, aes(x = island, fill = species)) +
-  geom_bar(alpha = 0.8) +
-  scale_fill_manual(values = c("darkorange","purple","cyan4"),
-                    guide = "none") +
-  theme_minimal() +
-  facet_wrap(~species, ncol = 1) +
-  coord_flip()
-```
-
-Talk more about it.
-
-And also planes (@fig-planes). (You can change the height and width, but don't worry about doing that until you have finished every other aspect of the paper - Quarto will try to make it look nice and the defaults usually work well once you have enough text.)
-
-```{r}
-#| label: fig-planes
-#| fig-cap: Relationship between wing length and width
-#| echo: false
+#| include: false
 #| warning: false
 #| message: false
 
-analysis_data <- read_csv(here::here("data/analysis_data/analysis_data.csv"))
+# Read the datasets
 
-analysis_data |> 
-  ggplot(aes(x = width, y = length)) +
-  geom_point(alpha = 0.8) +
-  theme_minimal() +
-  labs(x = "Wing width (mm)",
-       y = "Wing length (mm)")
+admissions_surg <- read_csv(here::here("data/admissions_surg.csv"))
+show_col_types = FALSE
+
+admissions_med <- read_csv(here::here("data/admissions_med.csv"))
+show_col_types = FALSE
+
+imaging <- read_csv(here::here("data/imaging.csv"))
+show_col_types = FALSE
 ```
 
-Talk way more about it. 
-
-
-
-# Model
-
-The goal of our modelling strategy is twofold. Firstly,...
-
-Here we briefly describe the Bayesian analysis model used to investigate... Background details and diagnostics are included in [Appendix -@sec-model-details].
-
-## Model set-up
-
-Define $y_i$ as the number of seconds that the plane remained aloft. Then $\beta_i$ is the wing width and $\gamma_i$ is the wing length, both measured in millimeters.  
-
-\begin{align} 
-y_i|\mu_i, \sigma &\sim \mbox{Normal}(\mu_i, \sigma) \\
-\mu_i &= \alpha + \beta_i + \gamma_i\\
-\alpha &\sim \mbox{Normal}(0, 2.5) \\
-\beta &\sim \mbox{Normal}(0, 2.5) \\
-\gamma &\sim \mbox{Normal}(0, 2.5) \\
-\sigma &\sim \mbox{Exponential}(1)
-\end{align}
-
-We run the model in R [@citeR] using the `rstanarm` package of @rstanarm. We use the default priors from `rstanarm`.
-
-
-### Model justification
-
-We expect a positive relationship between the size of the wings and time spent aloft. In particular...
-
-We can use maths by including latex between dollar signs, for instance $\theta$.
-
-
-# Results
-
-Our results are summarized in @tbl-modelresults.
-
 ```{r}
-#| echo: false
-#| eval: true
+#| include: false
 #| warning: false
 #| message: false
 
-library(rstanarm)
+# Compile a list of IDs
+all_ids <- unique(c(admissions_surg$ID, admissions_med$ID))
 
-first_model <-
-  readRDS(file = here::here("models/first_model.rds"))
+# Create a dataframe with unique identifiers
+q1b <- data.frame(ID = all_ids, DE_ID = seq_along(all_ids))
+
+# Display the first 10 rows
+head(q1b, 10)
+
+# Check uniqueness of DE_ID
+all(unique(q1b$DE_ID))  # Should return TRUE if all are unique
+
+# Corrected code for merging and selecting columns
+deidentified_surg <- merge(admissions_surg, q1b, by = "ID") |>
+                     select(DE_ID, everything(), -ID)
+deidentified_med <- merge(admissions_med, q1b, by = "ID") |>
+                    select(DE_ID, everything(), -ID)
+deidentified_imaging <- merge(imaging, q1b, by = "ID") |>
+                        select(DE_ID, everything(), -ID)
+
+# Display the first 5 rows of the new merged dataset
+head(deidentified_surg, 5)
+head(deidentified_med, 5)
+head(deidentified_imaging, 5)
 ```
 
 ```{r}
 #| echo: false
-#| eval: true
-#| label: tbl-modelresults
-#| tbl-cap: "Explanatory models of flight time based on wing width and wing length"
 #| warning: false
 
-modelsummary::modelsummary(
-  list(
-    "First model" = first_model
-  ),
-  statistic = "mad",
-  fmt = 2
-)
+# Display the first 5 rows of each de-identified dataset
+kable(head(deidentified_med, 5), caption = "First 5 rows of De-identified Medical Admissions", format = "latex", booktabs = TRUE) |>
+  kable_styling(font_size = 3.5)
+
+kable(head(deidentified_med, 5), caption = "First 5 rows of De-identified Medical Admissions", format = "latex", booktabs = TRUE) |>
+  kable_styling(font_size = 3.5)
+
+kable(head(deidentified_imaging, 5), caption = "First 5 rows of De-identified Imaging Data", format = "latex", booktabs = TRUE) |>
+  kable_styling(font_size = 4)
 ```
 
+\newpage 
 
+# Task Two
 
-
-# Discussion
-
-## First discussion point {#sec-first-point}
-
-If my paper were 10 pages, then should be be at least 2.5 pages. The discussion is a chance to show off what you know and what you learnt from all this. 
-
-## Second discussion point
-
-## Third discussion point
-
-## Weaknesses and next steps
-
-Weaknesses and next steps should also be included.
-
-\newpage
-
-\appendix
-
-# Appendix {-}
-
-
-# Additional data details
-
-# Model details {#sec-model-details}
-
-## Posterior predictive check
-
-In @fig-ppcheckandposteriorvsprior-1 we implement a posterior predictive check. This shows...
-
-In @fig-ppcheckandposteriorvsprior-2 we compare the posterior with the prior. This shows... 
+Create one data frame called admissions_img, consisting of all rows in admissions_surg and admissions_med, merged with the imaging data using DE_ID (retaining all DE_IDs from both).
 
 ```{r}
-#| eval: true
-#| echo: false
+#| include: false
+#| warning: false
 #| message: false
-#| warning: false
-#| label: fig-ppcheckandposteriorvsprior
-#| layout-ncol: 2
-#| fig-cap: "Examining how the model fits, and is affected by, the data"
-#| fig-subcap: ["Posterior prediction check", "Comparing the posterior with the prior"]
 
-pp_check(first_model) +
-  theme_classic() +
-  theme(legend.position = "bottom")
+library(readr)
+library(here)
+library(dplyr)
 
-posterior_vs_prior(first_model) +
-  theme_minimal() +
-  scale_color_brewer(palette = "Set1") +
-  theme(legend.position = "bottom") +
-  coord_flip()
+admissions_surg <- read_csv(here::here("data/admissions_surg.csv"))
+admissions_med <- read_csv(here::here("data/admissions_med.csv"))
+imaging <- read_csv(here::here("data/imaging.csv"))
+
+# Compile a list of IDs from both admissions datasets
+all_ids <- unique(c(admissions_surg$ID, admissions_med$ID))
+
+# Create a dataframe with unique identifiers
+q1b <- data.frame(ID = all_ids, DE_ID = seq_along(all_ids))
+
+# Merge the deidentification dataframe with both admissions datasets
+deidentified_surg <- merge(admissions_surg, q1b, by = "ID") |>
+                     select(DE_ID, everything(), -ID)
+deidentified_med <- merge(admissions_med, q1b, by = "ID") |>
+                    select(DE_ID, everything(), -ID)
+deidentified_imaging <- merge(imaging, q1b, by = "ID") |>
+                        select(DE_ID, everything(), -ID)
+
+# Combine surgical and medical admissions into one dataset
+combined_admissions <- bind_rows(deidentified_surg, deidentified_med)
+
+# Merge the combined admissions with the imaging data on DE_ID
+admissions_img <- left_join(combined_admissions, deidentified_imaging, by = "DE_ID")
+
 ```
-
-## Diagnostics
-
-@fig-stanareyouokay-1 is a trace plot. It shows... This suggests...
-
-@fig-stanareyouokay-2 is a Rhat plot. It shows... This suggests...
 
 ```{r}
-#| echo: false
-#| eval: true
-#| message: false
-#| warning: false
-#| label: fig-stanareyouokay
-#| fig-cap: "Checking the convergence of the MCMC algorithm"
-#| fig-subcap: ["Trace plot", "Rhat plot"]
-#| layout-ncol: 2
 
-plot(first_model, "trace")
+# Display the first 5 rows of the new merged dataset
+head(admissions_img, 5)
 
-plot(first_model, "rhat")
 ```
-
 
 
 \newpage
 
+# Task Three
 
-# References
+In admissions_img, create a new length_of_stay variable defined as discharge date and time minus admission date and time (in days). Calculate the mean length_of_stay for each department.
 
+```{r}
+#| include: false
+#| warning: false
+#| message: false
+
+library(dplyr)
+library(lubridate)
+
+# Assuming your dataframe is called admissions_img
+admissions_img <- admissions_img |>
+  mutate(
+    # Combine ADMISSION.DATE and ADMISSION.TIME into one datetime object, specify format explicitly
+    admission_datetime = as.POSIXct(paste(ADMISSION.DATE, format(ADMISSION.TIME, "%H:%M:%S")), format = "%Y-%m-%d %H:%M:%S", tz = "UTC"),
+    # Combine DISCHARGE.DATE and DISCHARGE.TIME into one datetime object, specify format explicitly
+    discharge_datetime = as.POSIXct(paste(DISCHARGE.DATE, format(DISCHARGE.TIME, "%H:%M:%S")), format = "%Y-%m-%d %H:%M:%S", tz = "UTC"),
+    # Calculate length of stay in days
+    length_of_stay = as.numeric(difftime(discharge_datetime, admission_datetime, units = "days"))
+  )
+
+# Calculate the mean length of stay for each department, assuming you have a Department column
+mean_length_of_stay_by_dept <- admissions_img |>
+  group_by(DEPARTMENT) |>
+  summarise(
+    Mean_Length_of_Stay = mean(length_of_stay, na.rm = TRUE),
+    .groups = 'drop'  # Drop grouping structure after summarization
+  )
+```
+
+```{r}
+# Display the result
+mean_length_of_stay_by_dept
+```
+
+# Task Four
+
+In imaging, filter to the first performed test for each test_name and save the resulting data frame as q4_df. Then, transform the data into wide format such that each test_name becomes a column displaying the performed_date of that test (see example table below). Display the head of the table.
+
+```{r}
+#| include: false
+#| warning: false
+#| message: false
+
+library(dplyr)
+library(tidyr)
+library(readr)
+
+# Filter to the first performed test for each test_name
+q4_df <- imaging |>
+  arrange(test_name, performed_date, performed_time) |>  # Arrange to ensure we're getting the first test chronologically
+  group_by(test_name) |>
+  slice_head(n = 1) |>
+  ungroup()
+```
+
+```{r}
+# Display the head of the wide format table
+head(q4_df)
+```
 
